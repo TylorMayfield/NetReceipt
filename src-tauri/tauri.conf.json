@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "NetReceipt",
+  "version": "0.1.0",
+  "identifier": "com.netreceipt.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "NetReceipt",
+        "width": 420,
+        "height": 640,
+        "minWidth": 420,
+        "minHeight": 640,
+        "resizable": false,
+        "maximizable": false,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1420 https://www.google-analytics.com https://region1.google-analytics.com; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data:"
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": false,
+      "tooltip": "NetReceipt"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.png"],
+    "category": "Utility",
+    "shortDescription": "Low-impact internet status auditor",
+    "longDescription": "Monitor latency, DNS reachability, and HTTPS connectivity from your system tray."
+  }
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tylormayfield.github.io/NetReceipt/sitemap.xml
