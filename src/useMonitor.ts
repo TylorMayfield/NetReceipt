@@ -11,6 +11,7 @@ export function useMonitor() {
   const runningRef = useRef(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const noticeTimer = useRef<number | null>(null);
+  const historyRefreshInFlight = useRef(false);
 
   const showNotice = useCallback((kind: NoticeKind, message: string) => {
     if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
@@ -71,7 +72,12 @@ export function useMonitor() {
     const sampleListener = listen<Sample>("sample", ({ payload }) => {
       if (!active) return;
       setCurrent(payload);
-      void monitorApi.getHistory(500).then(setHistory).catch((cause) => showNotice("error", errorMessage(cause)));
+      if (historyRefreshInFlight.current) return;
+      historyRefreshInFlight.current = true;
+      void monitorApi.getHistory(500)
+        .then((recent) => { if (active) setHistory(recent); })
+        .catch((cause) => { if (active) showNotice("error", errorMessage(cause)); })
+        .finally(() => { historyRefreshInFlight.current = false; });
     });
     const trayListener = listen("tray-toggle", toggleMonitoring);
     const errorListener = listen<string>("monitor-error", ({ payload }) => {

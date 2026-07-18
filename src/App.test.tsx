@@ -2,13 +2,13 @@ import { Theme } from "@radix-ui/themes";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { SettingsDialog } from "./App";
+import { SettingsDialog, TelemetryDialog } from "./App";
 import { AboutDialog } from "./about-dialog";
 import { defaultConfig, type HistoryOverview, type Sample } from "./domain";
 import { ExportDialog } from "./export-dialog";
 import { HistoryDialog } from "./history-dialog";
 import { connectionPresentation, metricPresentation } from "./presentation";
-import { adaptiveChartMax } from "./chart";
+import { adaptiveChartMax, selectSpacedMarkers } from "./chart";
 
 describe("connection presentation", () => {
   it("distinguishes initial checking from a partial result", () => {
@@ -43,6 +43,26 @@ describe("adaptive chart scale", () => {
 
   it("includes the slow threshold when observed latency approaches it", () => {
     expect(adaptiveChartMax(180, 250)).toBe(300);
+  });
+});
+
+describe("chart markers", () => {
+  it("spaces routine markers while preserving issues and endpoints", () => {
+    const points = Array.from({ length: 9 }, (_, index) => ({ x: index * 10, issue: index === 4 }));
+    expect(selectSpacedMarkers(points, (point) => point.x, (point) => point.issue, 18).map((point) => point.x)).toEqual([0, 20, 40, 60, 80]);
+  });
+});
+
+describe("TelemetryDialog", () => {
+  it("keeps keyboard focus in the required privacy choice and saves explicitly", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<Theme appearance="dark"><TelemetryDialog initialValue={false} required onClose={vi.fn()} onSave={onSave} /></Theme>);
+    const dialog = screen.getByRole("dialog", { name: "Help improve NetReceipt?" });
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    await user.click(screen.getByRole("switch", { name: "Anonymous telemetry" }));
+    await user.click(screen.getByRole("button", { name: "Save choice" }));
+    expect(onSave).toHaveBeenCalledWith(true);
   });
 });
 
@@ -84,13 +104,19 @@ describe("HistoryDialog", () => {
   it("loads the default range and refreshes when a different range is selected", async () => {
     const user = userEvent.setup();
     const loadOverview = vi.fn().mockResolvedValue(historyOverview());
-    render(<Theme appearance="dark"><HistoryDialog threshold={250} refreshKey={1} loadOverview={loadOverview} /></Theme>);
+    const { rerender } = render(<Theme appearance="dark"><HistoryDialog threshold={250} loadOverview={loadOverview} /></Theme>);
     await user.click(screen.getByRole("button", { name: "View history" }));
     expect(await screen.findByRole("dialog", { name: "Connection history" })).not.toBeNull();
     await waitFor(() => expect(loadOverview).toHaveBeenCalledTimes(1));
+
+    const replacementLoader = vi.fn().mockResolvedValue(historyOverview());
+    rerender(<Theme appearance="dark"><HistoryDialog threshold={250} loadOverview={replacementLoader} /></Theme>);
+    await Promise.resolve();
+    expect(replacementLoader).not.toHaveBeenCalled();
+
     await user.click(screen.getByRole("button", { name: "7d" }));
-    await waitFor(() => expect(loadOverview).toHaveBeenCalledTimes(2));
-    const [start, end] = loadOverview.mock.calls[1];
+    await waitFor(() => expect(replacementLoader).toHaveBeenCalledTimes(1));
+    const [start, end] = replacementLoader.mock.calls[0];
     expect(end - start).toBe(7 * 24 * 60 * 60);
   });
 });

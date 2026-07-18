@@ -1,5 +1,5 @@
 import { Text, TextField } from "@radix-ui/themes";
-import { adaptiveChartMax } from "./chart";
+import { adaptiveChartMax, selectSpacedMarkers } from "./chart";
 import type { HistoryOverview, HistoryPoint, Sample } from "./domain";
 
 export type MetricTone = "healthy" | "warning" | "error" | "waiting";
@@ -47,6 +47,9 @@ export function ActivityChart({ samples, threshold, endTimestamp }: { samples: S
   const x = (timestamp: number) => left + ((Math.max(startTimestamp, Math.min(endTimestamp, timestamp)) - startTimestamp) / (endTimestamp - startTimestamp)) * (right - left);
   const y = (value: number) => bottom - (Math.min(value, chartMax) / chartMax) * (bottom - top);
   const segments = chartSegments(ordered, x, y);
+  const plottedSamples = ordered.filter((sample) => sample.latencyMs !== null);
+  const markerSamples = selectSpacedMarkers(plottedSamples, (sample) => x(sample.timestamp), (sample) => sample.status !== "healthy");
+  const latestSample = plottedSamples[plottedSamples.length - 1];
   const thresholdY = y(threshold);
   const accessibleSummary = values.length
     ? `TCP latency trend. Average ${average} milliseconds, peak ${peak} milliseconds, with ${issues} connection issues in the last 30 minutes.`
@@ -66,7 +69,7 @@ export function ActivityChart({ samples, threshold, endTimestamp }: { samples: S
           {threshold <= chartMax && thresholdY >= top && thresholdY <= bottom && <><line className="chart-threshold" x1={left} y1={thresholdY} x2={right} y2={thresholdY} /><text className="threshold-label" x={right - 4} y={thresholdY - 8}>Slow threshold</text></>}
           {segments.map((segment, index) => <path key={`fill-${index}`} className="chart-fill" d={`${segment.path} L ${segment.endX} ${bottom} L ${segment.startX} ${bottom} Z`} />)}
           {segments.map((segment, index) => <path key={`line-${index}`} className="chart-line" d={segment.path} />)}
-          {ordered.map((sample) => sample.latencyMs === null ? null : <circle key={sample.id} cx={x(sample.timestamp)} cy={y(sample.latencyMs)} r="4.4" className={`chart-point ${sample.status}`} />)}
+          {markerSamples.map((sample) => <circle key={sample.id} cx={x(sample.timestamp)} cy={y(sample.latencyMs!)} r={sample.status !== "healthy" ? 4.8 : sample === latestSample ? 4 : 3.2} className={`chart-point ${sample.status}${sample === latestSample ? " latest" : ""}`} />)}
           <text className="time-label" x={left} y="241">{formatTime(startTimestamp)}</text>
           <text className="time-label middle" x={(left + right) / 2} y="241">{formatTime(startTimestamp + 15 * 60)}</text>
           <text className="time-label end" x={right} y="241">Now</text>
@@ -93,6 +96,9 @@ export function HistoryRangeChart({ overview, threshold }: { overview: HistoryOv
   const x = (timestamp: number) => left + ((timestamp - startTimestamp) / range) * (right - left);
   const y = (value: number) => bottom - (Math.min(value, chartMax) / chartMax) * (bottom - top);
   const segments = historySegments(points, x, y, bucketSeconds);
+  const plottedPoints = points.filter((point) => point.averageLatencyMs !== null);
+  const markerPoints = selectSpacedMarkers(plottedPoints, (point) => x(point.timestamp), (point) => point.status !== "healthy");
+  const latestPoint = plottedPoints[plottedPoints.length - 1];
   const thresholdY = y(threshold);
   const label = summary.sampleCount
     ? `TCP latency history. Average ${summary.averageLatencyMs ?? "unavailable"} milliseconds, peak ${summary.peakLatencyMs ?? "unavailable"} milliseconds, with ${summary.incidentCount} confirmed incidents.`
@@ -111,7 +117,7 @@ export function HistoryRangeChart({ overview, threshold }: { overview: HistoryOv
         {threshold <= chartMax && <line className="chart-threshold" x1={left} y1={thresholdY} x2={right} y2={thresholdY} />}
         {segments.map((segment, index) => <path key={`range-fill-${index}`} className="range-chart-fill" d={`${segment.path} L ${segment.endX} ${bottom} L ${segment.startX} ${bottom} Z`} />)}
         {segments.map((segment, index) => <path key={`range-line-${index}`} className="chart-line" d={segment.path} />)}
-        {points.map((point) => point.averageLatencyMs === null ? null : <circle key={point.timestamp} cx={x(point.timestamp)} cy={y(point.averageLatencyMs)} r="4" className={`chart-point ${point.status}`} />)}
+        {markerPoints.map((point) => <circle key={point.timestamp} cx={x(point.timestamp)} cy={y(point.averageLatencyMs!)} r={point.status !== "healthy" ? 4.8 : point === latestPoint ? 4 : 3.2} className={`chart-point ${point.status}${point === latestPoint ? " latest" : ""}`} />)}
         <text className="time-label" x={left} y="211">{formatRangeTime(startTimestamp, range)}</text>
         <text className="time-label middle" x={(left + right) / 2} y="211">{formatRangeTime(startTimestamp + range / 2, range)}</text>
         <text className="time-label end" x={right} y="211">Now</text>

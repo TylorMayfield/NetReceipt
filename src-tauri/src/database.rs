@@ -127,9 +127,43 @@ pub fn history_between(
         .map_err(|error| error.to_string())
 }
 
+pub fn history_analysis_between(
+    connection: &Connection,
+    start_timestamp: i64,
+    end_timestamp: i64,
+) -> Result<Vec<Sample>, String> {
+    let mut statement = connection
+        .prepare(
+            "SELECT timestamp, status, latency_ms
+             FROM samples WHERE timestamp >= ?1 AND timestamp <= ?2 ORDER BY timestamp ASC",
+        )
+        .map_err(|error| error.to_string())?;
+    let rows = statement
+        .query_map(params![start_timestamp, end_timestamp], |row| {
+            let latency_ms = row.get(2)?;
+            Ok(Sample {
+                id: 0,
+                timestamp: row.get(0)?,
+                status: row.get(1)?,
+                explanation: String::new(),
+                latency_ms,
+                dns_ok: false,
+                https_ok: false,
+                tcp_ok: latency_ms.is_some(),
+                dns_latency_ms: None,
+                https_latency_ms: None,
+            })
+        })
+        .map_err(|error| error.to_string())?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|error| error.to_string())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{history, history_between, initialize, insert_sample, prune_before};
+    use super::{
+        history, history_analysis_between, history_between, initialize, insert_sample, prune_before,
+    };
     use crate::models::Sample;
     use rusqlite::Connection;
 
@@ -185,5 +219,10 @@ mod tests {
             .map(|item| item.timestamp)
             .collect::<Vec<_>>();
         assert_eq!(timestamps, vec![200, 300]);
+
+        let analysis = history_analysis_between(&connection, 200, 300).unwrap();
+        assert_eq!(analysis.len(), 2);
+        assert!(analysis.iter().all(|item| item.explanation.is_empty()));
+        assert!(analysis.iter().all(|item| item.latency_ms == Some(10)));
     }
 }

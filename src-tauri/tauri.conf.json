@@ -20,16 +20,12 @@
         "minHeight": 640,
         "resizable": false,
         "maximizable": false,
-        "decorations": false
+        "decorations": false,
+        "skipTaskbar": true
       }
     ],
     "security": {
       "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1420 https://www.google-analytics.com https://region1.google-analytics.com; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data:"
-    },
-    "trayIcon": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": false,
-      "tooltip": "NetReceipt"
     }
   },
   "bundle": {

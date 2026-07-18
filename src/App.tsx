@@ -113,7 +113,7 @@ export function App() {
           <AboutDialog telemetryEnabled={telemetryEnabled ?? false} onTelemetryChange={updateTelemetry} />
           <span className="header-rule window-rule" />
           <button className="window-control" aria-label="Minimize" title="Minimize" onClick={() => void runWindowAction("minimize")}><MinusIcon /></button>
-          <button className="window-control close" aria-label="Close" title="Close to tray" onClick={() => void runWindowAction("close")}><Cross2Icon /></button>
+          <button className="window-control close" aria-label="Close to tray" title="Close to tray" onClick={() => void runWindowAction("close")}><Cross2Icon /></button>
         </div>
       </header>
 
@@ -139,7 +139,7 @@ export function App() {
         <section className="history-section">
           <div className="section-title-row">
             <h2>TCP latency history</h2>
-            <div className="section-title-actions"><span>30 min · ≥ {monitor.config.latencyThresholdMs} ms</span><HistoryDialog threshold={monitor.config.latencyThresholdMs} refreshKey={current?.id ?? 0} loadOverview={loadHistoryOverview} /></div>
+            <div className="section-title-actions"><span>30 min · ≥ {monitor.config.latencyThresholdMs} ms</span><HistoryDialog threshold={monitor.config.latencyThresholdMs} loadOverview={loadHistoryOverview} /></div>
           </div>
           <ActivityChart samples={visibleHistory} threshold={monitor.config.latencyThresholdMs} endTimestamp={historyEnd} />
         </section>
@@ -181,15 +181,20 @@ export function App() {
   );
 }
 
-function TelemetryDialog({ initialValue, required, onClose, onSave }: { initialValue: boolean; required: boolean; onClose: () => void; onSave: (enabled: boolean) => void }) {
+export function TelemetryDialog({ initialValue, required, onClose, onSave }: { initialValue: boolean; required: boolean; onClose: () => void; onSave: (enabled: boolean) => void }) {
   const [enabled, setEnabled] = useState(initialValue);
 
   return (
-    <div className="telemetry-backdrop" onMouseDown={(event) => { if (!required && event.target === event.currentTarget) onClose(); }}>
-      <section className="telemetry-dialog" role="dialog" aria-modal="true" aria-labelledby="telemetry-title" aria-describedby="telemetry-description">
+    <Dialog.Root open onOpenChange={(nextOpen) => { if (!nextOpen && !required) onClose(); }}>
+      <Dialog.Content
+        className="telemetry-dialog"
+        maxWidth="370px"
+        onEscapeKeyDown={(event) => { if (required) event.preventDefault(); }}
+        onPointerDownOutside={(event) => { if (required) event.preventDefault(); }}
+      >
         <span className="eyebrow">PRIVACY CHOICE</span>
-        <h2 id="telemetry-title">Help improve NetReceipt?</h2>
-        <p id="telemetry-description">Share anonymous usage events so we can understand whether NetReceipt is useful and improve the app.</p>
+        <Dialog.Title>Help improve NetReceipt?</Dialog.Title>
+        <Dialog.Description>Share anonymous usage events so we can understand whether NetReceipt is useful and improve the app.</Dialog.Description>
         <ul>
           <li>Includes basic app opens and feature usage.</li>
           <li>Never includes monitored hosts, latency results, connection history, or exported data.</li>
@@ -203,8 +208,8 @@ function TelemetryDialog({ initialValue, required, onClose, onSave }: { initialV
           {!required && <Button type="button" variant="soft" color="gray" onClick={onClose}>Cancel</Button>}
           <Button type="button" onClick={() => onSave(enabled)}>Save choice</Button>
         </div>
-      </section>
-    </div>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }
 

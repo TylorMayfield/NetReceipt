@@ -6,7 +6,7 @@ use crate::{
 };
 use std::sync::atomic::Ordering;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 #[tauri::command]
 pub fn get_config(state: State<'_, AppState>) -> Config {
@@ -14,11 +14,15 @@ pub fn get_config(state: State<'_, AppState>) -> Config {
 }
 
 #[tauri::command]
-pub fn update_config(state: State<'_, AppState>, config: Config) -> Result<(), String> {
-    config.validate()?;
-    database::save_config(&state.db.lock().unwrap(), &config)?;
-    *state.config.lock().unwrap() = config;
-    Ok(())
+pub async fn update_config(app: AppHandle, config: Config) -> Result<(), String> {
+    run_blocking("save settings", move || {
+        config.validate()?;
+        let state = app.state::<AppState>();
+        database::save_config(&state.db.lock().unwrap(), &config)?;
+        *state.config.lock().unwrap() = config;
+        Ok(())
+    })
+    .await
 }
 
 #[tauri::command]
@@ -27,52 +31,65 @@ pub fn get_current(state: State<'_, AppState>) -> Option<Sample> {
 }
 
 #[tauri::command]
-pub fn get_history(state: State<'_, AppState>, limit: u32) -> Result<Vec<Sample>, String> {
-    database::history(&state.db.lock().unwrap(), limit)
+pub async fn get_history(app: AppHandle, limit: u32) -> Result<Vec<Sample>, String> {
+    run_blocking("load recent history", move || {
+        let state = app.state::<AppState>();
+        let connection = state.db.lock().unwrap();
+        database::history(&connection, limit)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn get_history_overview(
-    state: State<'_, AppState>,
+pub async fn get_history_overview(
+    app: AppHandle,
     start_timestamp: i64,
     end_timestamp: i64,
     max_points: u32,
 ) -> Result<HistoryOverview, String> {
-    let config = state.config.lock().unwrap().clone();
-    let (start, end) = validated_range(start_timestamp, end_timestamp, config.retention_days)?;
-    let samples = database::history_between(&state.db.lock().unwrap(), start, end)?;
-    Ok(history::overview(
-        &samples,
-        start,
-        end,
-        max_points.clamp(60, 360),
-        config.failure_tolerance,
-        config.interval_seconds,
-        now(),
-    ))
+    run_blocking("load history overview", move || {
+        let state = app.state::<AppState>();
+        let config = state.config.lock().unwrap().clone();
+        let (start, end) = validated_range(start_timestamp, end_timestamp, config.retention_days)?;
+        let samples = database::history_analysis_between(&state.db.lock().unwrap(), start, end)?;
+        Ok(history::overview(
+            &samples,
+            start,
+            end,
+            max_points.clamp(60, 360),
+            config.failure_tolerance,
+            config.interval_seconds,
+            now(),
+        ))
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn write_history_export(
-    state: State<'_, AppState>,
+pub async fn write_history_export(
+    app: AppHandle,
     path: String,
     format: String,
     start_timestamp: i64,
     end_timestamp: i64,
 ) -> Result<(), String> {
-    let config = state.config.lock().unwrap().clone();
-    let (start, end) = validated_range(start_timestamp, end_timestamp, config.retention_days)?;
-    let samples = database::history_between(&state.db.lock().unwrap(), start, end)?;
-    let overview = history::overview(
-        &samples,
-        start,
-        end,
-        240,
-        config.failure_tolerance,
-        config.interval_seconds,
-        now(),
-    );
-    export::write(&path, &format, &samples, &overview, &config, now())
+    run_blocking("export history", move || {
+        let state = app.state::<AppState>();
+        let config = state.config.lock().unwrap().clone();
+        let (start, end) = validated_range(start_timestamp, end_timestamp, config.retention_days)?;
+        let samples = database::history_between(&state.db.lock().unwrap(), start, end)?;
+        let overview = history::overview(
+            &samples,
+            start,
+            end,
+            240,
+            config.failure_tolerance,
+            config.interval_seconds,
+            now(),
+        );
+        export::write(&path, &format, &samples, &overview, &config, now())
+    })
+    .await
 }
 
 #[tauri::command]
@@ -102,4 +119,14 @@ fn now() -> i64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
+}
+
+async fn run_blocking<T, F>(operation: &'static str, task: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(task)
+        .await
+        .map_err(|error| format!("Could not {operation}: {error}"))?
 }

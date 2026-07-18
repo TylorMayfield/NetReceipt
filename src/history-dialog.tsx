@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Dialog } from "@radix-ui/themes";
 import { track } from "./analytics";
 import { HistoryRangeChart } from "./components";
@@ -11,22 +11,27 @@ const ranges: Array<{ value: HistoryRange; label: string }> = [
   { value: "30d", label: "30d" },
 ];
 
-export function HistoryDialog({ threshold, refreshKey, loadOverview }: { threshold: number; refreshKey: number; loadOverview: (start: number, end: number) => Promise<HistoryOverview> }) {
+export function HistoryDialog({ threshold, loadOverview }: { threshold: number; loadOverview: (start: number, end: number) => Promise<HistoryOverview> }) {
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState<HistoryRange>("24h");
   const [overview, setOverview] = useState<HistoryOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const loadOverviewRef = useRef(loadOverview);
+
+  useEffect(() => {
+    loadOverviewRef.current = loadOverview;
+  }, [loadOverview]);
 
   useEffect(() => {
     if (!open) return;
     let active = true;
     const end = Math.floor(Date.now() / 1000);
-    void loadOverview(end - historyRangeSeconds[range], end)
+    void loadOverviewRef.current(end - historyRangeSeconds[range], end)
       .then((value) => { if (active) setOverview(value); })
       .catch((cause) => { if (active) setError(errorMessage(cause)); })
     return () => { active = false; };
-  }, [loadOverview, open, range, refreshKey, retryKey]);
+  }, [open, range, retryKey]);
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (next) { setOverview(null); setError(null); track("history_opened"); } }}>

@@ -26,6 +26,9 @@ fn show_main_window(app: &tauri::AppHandle) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_main_window(app);
+        }))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .on_window_event(|window, event| {
@@ -72,8 +75,9 @@ fn main() {
                 ],
             )?;
 
-            tauri::tray::TrayIconBuilder::new()
+            let mut tray = tauri::tray::TrayIconBuilder::new()
                 .menu(&menu)
+                .tooltip("NetReceipt")
                 .show_menu_on_left_click(false)
                 .on_tray_icon_event(|tray, event| {
                     if matches!(
@@ -94,8 +98,13 @@ fn main() {
                     }
                     "quit" => app.exit(0),
                     _ => {}
-                })
-                .build(app)?;
+                });
+
+            if let Some(icon) = app.default_window_icon() {
+                tray = tray.icon(icon.clone());
+            }
+
+            tray.build(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

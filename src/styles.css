@@ -136,8 +136,9 @@ input:focus-visible,
 .threshold-label { fill: #f0ad00; font-size: 18px; text-anchor: end; }
 .chart-fill { fill: url(#chart-fill); stroke: none; }
 .range-chart-fill { fill: url(#range-chart-fill); stroke: none; }
-.chart-line { fill: none; stroke: #43c8c1; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.chart-point { fill: #4fd1ca; stroke: #0f5553; stroke-width: 1.3; }
+.chart-line { fill: none; stroke: #43c8c1; stroke-width: 2.75; stroke-linecap: round; stroke-linejoin: round; }
+.chart-point { fill: #63d8d1; stroke: #0b5e5a; stroke-width: 1.6; }
+.chart-point.latest { stroke: #d8fffc; stroke-width: 2; }
 .chart-point.slow { fill: var(--warning); stroke: #6f5414; }
 .chart-point.interrupted, .chart-point.unknown { fill: var(--danger); stroke: #6f2c28; }
 .chart-empty { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 10px; color: var(--text-secondary); font-size: 11px; }
@@ -156,10 +157,9 @@ input:focus-visible,
 .footer-actions button:last-child { padding-right: 0; }
 .footer-actions button:hover { color: #f5f6f6; }
 .footer-actions svg { width: 13px; height: 13px; }
-.telemetry-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(4, 6, 7, .82); backdrop-filter: blur(7px); }
-.telemetry-dialog { width: min(370px, 100%); padding: 25px; border: 1px solid #3b4445; border-radius: 14px; background: linear-gradient(145deg, #1a2021, #101415); box-shadow: 0 24px 70px rgba(0, 0, 0, .65); }
-.telemetry-dialog h2 { margin: 7px 0 9px; font-size: 23px; letter-spacing: -.025em; }
-.telemetry-dialog > p:not(.telemetry-note) { margin: 0; color: #bec2c4; font-size: 13px; line-height: 1.55; }
+.telemetry-dialog { width: calc(100vw - 48px); max-height: calc(100vh - 80px); padding: 25px !important; border: 1px solid #3b4445; border-radius: 14px; background: linear-gradient(145deg, #1a2021, #101415); box-shadow: 0 24px 70px rgba(0, 0, 0, .65); }
+.telemetry-dialog > .rt-DialogTitle { margin: 7px 0 9px; font-size: 23px; letter-spacing: -.025em; }
+.telemetry-dialog > .rt-DialogDescription { margin: 0; color: #bec2c4; font-size: 13px; line-height: 1.55; }
 .telemetry-dialog ul { margin: 17px 0; padding: 13px 15px 13px 30px; border: 1px solid #303738; border-radius: 9px; color: #b2b7b9; background: #0d1112; font-size: 11px; line-height: 1.55; }
 .telemetry-dialog li + li { margin-top: 6px; }
 .telemetry-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 2px; cursor: pointer; }
@@ -173,7 +173,7 @@ input:focus-visible,
 .product-links a:hover { color: #a0f2ed; text-decoration: underline; }
 .product-links i { color: #5f6668; font-style: normal; }
 
-.history-dialog-content { display: flex; flex-direction: column; width: calc(100vw - 24px); height: min(584px, calc(100vh - 24px)); max-height: none !important; padding: 20px !important; }
+.history-dialog-content { display: flex; flex-direction: column; width: calc(100vw - 48px); height: min(568px, calc(100vh - 72px)); max-height: none !important; padding: 20px !important; }
 .history-dialog-content > .rt-DialogDescription { margin-top: -5px; }
 .range-picker { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; border: 1px solid #353b3d; border-radius: 8px; background: #0e1213; }
 .history-dialog-content > .range-picker { margin-top: 15px; }
@@ -207,7 +207,7 @@ input:focus-visible,
 .history-state.error { color: #ef8d87; }
 .dialog-close-row { display: flex; justify-content: flex-end; margin-top: 14px; }
 
-.export-dialog-content { width: calc(100vw - 40px); padding: 23px !important; }
+.export-dialog-content { width: calc(100vw - 40px); overflow-x: hidden; padding: 23px !important; }
 .export-options, .export-range { display: flex; flex-direction: column; gap: 7px; margin: 17px 0 0; padding: 0; border: 0; }
 .export-options legend, .export-range legend { margin-bottom: 7px; color: #c7cbcc; font-size: 11px; font-weight: 600; }
 .export-options > label { display: flex; align-items: center; gap: 10px; padding: 11px; border: 1px solid #343a3c; border-radius: 8px; background: #111516; cursor: pointer; }
