@@ -45,6 +45,9 @@ const statusPresentation: Record<Status, { headline: string; detail: string }> =
 };
 
 const telemetryStorageKey = "netreceipt.telemetry-enabled";
+const statusClockRefreshMs = 15_000;
+
+type DisplayStatus = Status | "paused" | "stale";
 
 function savedTelemetryPreference(): boolean | null {
   const value = localStorage.getItem(telemetryStorageKey);
@@ -61,8 +64,7 @@ export function App() {
   const history = useMemo(() => monitor.history.length ? monitor.history : preview?.history ?? [], [monitor.history, preview]);
   const historyEnd = current?.timestamp ?? mountedAt;
   const visibleHistory = samplesWithinWindow(history, historyEnd);
-  const status = current?.status ?? "unknown";
-  const presentation = connectionPresentation(current, statusPresentation);
+  const running = monitor.running || !isDesktopRuntime;
 
   useEffect(() => {
     if (telemetryEnabled !== null) setAnalyticsConsent(telemetryEnabled);
@@ -105,8 +107,8 @@ export function App() {
           <span>NetReceipt</span>
         </div>
         <div className="header-actions">
-          <span className={`live-state ${monitor.running || !isDesktopRuntime ? "active" : ""}`}>
-            <i />{monitor.running || !isDesktopRuntime ? "Live" : "Paused"}
+          <span className={`live-state ${running ? "active" : ""}`}>
+            <i />{running ? "Live" : "Paused"}
           </span>
           <span className="header-rule" />
           <SettingsDialog config={monitor.config} onSave={monitor.saveConfig} />
@@ -118,17 +120,7 @@ export function App() {
       </header>
 
       <div className="widget-content">
-        <section className={`status-hero ${status}`}>
-          <span className="eyebrow">CONNECTION STATUS</span>
-          <div className="status-hero-row">
-            <div className="status-check" aria-hidden="true"><StatusIcon status={status} /></div>
-            <div className="status-message">
-              <h1>{presentation.headline}</h1>
-              <p>{presentation.detail}</p>
-            </div>
-          </div>
-          <span className="checked-time">{formatCheckedTime(current?.timestamp)}</span>
-        </section>
+        <StatusHero current={current} running={running} config={monitor.config} />
 
         <section className="metrics-grid" aria-label="Connection metrics">
           <MetricCard kind="latency" label="TCP" value={current?.latencyMs} {...metricPresentation("latency", current, monitor.config.latencyThresholdMs)} />
@@ -151,8 +143,8 @@ export function App() {
           <div className="footer-actions">
             <ExportDialog onExport={runExport} />
             <button type="button" onClick={() => { track("monitor_toggled", { enabled: !monitor.running }); monitor.toggleMonitoring(); }}>
-              {monitor.running || !isDesktopRuntime ? <PauseIcon /> : <PlayIcon />}
-              {monitor.running || !isDesktopRuntime ? "Pause" : "Resume"}
+              {running ? <PauseIcon /> : <PlayIcon />}
+              {running ? "Pause" : "Resume"}
             </button>
           </div>
         </div>
@@ -280,16 +272,82 @@ function NetReceiptMark() {
   return <svg className="brand-mark" viewBox="0 0 28 28" aria-hidden="true"><path d="M3.5 15.5c3.7-6.3 6.8-6.3 10.2 0s6.8 6.3 10.8 0" /></svg>;
 }
 
-function StatusIcon({ status }: { status: Status }) {
+export function StatusHero({ current, running, config }: { current: Sample | null; running: boolean; config: MonitorConfig }) {
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), statusClockRefreshMs);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const display = connectionDisplay(current, running, config, now);
+
+  return (
+    <section className={`status-hero ${display.status}`}>
+      <span className="eyebrow">CONNECTION STATUS</span>
+      <div className="status-hero-row">
+        <div className="status-check" aria-hidden="true"><StatusIcon status={display.status} /></div>
+        <div className="status-message" role="status" aria-live="polite" aria-atomic="true">
+          <h1>{display.headline}</h1>
+          <p>{display.detail}</p>
+        </div>
+      </div>
+      <span className="checked-time">{display.checkedTime}</span>
+    </section>
+  );
+}
+
+function connectionDisplay(current: Sample | null, running: boolean, config: MonitorConfig, now: number) {
+  if (!running) {
+    return {
+      status: "paused" as const,
+      headline: "Monitoring paused",
+      detail: "Connection checks are stopped. Resume below to collect a fresh sample.",
+      checkedTime: formatLastCheckedTime(current?.timestamp, now),
+    };
+  }
+
+  if (current && now - current.timestamp > freshnessWindowSeconds(config)) {
+    return {
+      status: "stale" as const,
+      headline: "Latest check is stale",
+      detail: "No new result arrived when expected. Current connection health is unknown.",
+      checkedTime: formatLastCheckedTime(current.timestamp, now),
+    };
+  }
+
+  const presentation = connectionPresentation(current, statusPresentation);
+  return {
+    status: current?.status ?? "unknown",
+    ...presentation,
+    checkedTime: formatCheckedTime(current?.timestamp, now),
+  };
+}
+
+function freshnessWindowSeconds(config: MonitorConfig) {
+  return config.intervalSeconds + 2 * config.timeoutSeconds + 5;
+}
+
+function StatusIcon({ status }: { status: DisplayStatus }) {
+  if (status === "paused") return <PauseIcon />;
   if (status === "healthy") return <svg viewBox="0 0 48 48"><path d="m10 25 9 9 19-20" /></svg>;
-  if (status === "slow") return <span>!</span>;
+  if (status === "slow" || status === "stale") return <span>!</span>;
   if (status === "interrupted") return <svg viewBox="0 0 48 48"><path d="m14 14 20 20m0-20L14 34" /></svg>;
   return <span>…</span>;
 }
 
-function formatCheckedTime(timestamp?: number) {
-  if (!timestamp || Date.now() / 1000 - timestamp < 60) return "Checked just now";
+function formatCheckedTime(timestamp: number | undefined, now: number) {
+  if (!timestamp) return "Waiting for first check";
+  if (now - timestamp < 60) return "Checked just now";
   return `Checked ${new Date(timestamp * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
+
+function formatLastCheckedTime(timestamp: number | undefined, now: number) {
+  if (!timestamp) return "No completed checks";
+  const checkedAt = new Date(timestamp * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const ageMinutes = Math.floor(Math.max(0, now - timestamp) / 60);
+  const relativeAge = ageMinutes > 0 ? ` · ${ageMinutes} min ago` : "";
+  return `Last checked ${checkedAt}${relativeAge}`;
 }
 
 async function runWindowAction(action: "close" | "minimize") {

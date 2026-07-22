@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="NetReceipt UX audit covering the desktop dashboard and public product page.">
+  <title>NetReceipt UX Audit — July 2026</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f4f8f7;
+      --muted: #a4b0af;
+      --quiet: #73817f;
+      --bg: #08100f;
+      --surface: #0e1716;
+      --surface-2: #121d1b;
+      --surface-3: #172321;
+      --line: #263431;
+      --line-strong: #3a4d49;
+      --teal: #62d5cb;
+      --teal-2: #a2fff5;
+      --green: #67d773;
+      --amber: #f2b84b;
+      --red: #ff7469;
+      --blue: #81b6ff;
+      --max: 1180px;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 85% 0%, rgba(42, 122, 113, .18), transparent 25rem),
+        radial-gradient(circle at 8% 15%, rgba(31, 79, 74, .12), transparent 22rem),
+        var(--bg);
+      line-height: 1.55;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+
+    .skip-link {
+      position: fixed;
+      left: 18px;
+      top: 10px;
+      z-index: 99;
+      transform: translateY(-150%);
+      padding: 9px 13px;
+      border-radius: 8px;
+      background: var(--teal);
+      color: #05110f;
+      font-weight: 800;
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(88, 113, 107, .28);
+      background: rgba(8, 16, 15, .88);
+      backdrop-filter: blur(16px);
+    }
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: min(var(--max), calc(100% - 40px));
+      height: 64px;
+      margin: auto;
+    }
+    .wordmark { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.02em; }
+    .wordmark-mark {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border: 1px solid #36534e;
+      border-radius: 9px;
+      background: #12201e;
+    }
+    .wordmark-mark svg { width: 20px; fill: none; stroke: var(--teal); stroke-width: 3; stroke-linecap: round; }
+    .audit-label { color: var(--quiet); font-size: 12px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #101a19;
+      color: #dce5e3;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .button:hover { border-color: #58716c; background: #162220; }
+    .button.primary { border-color: transparent; background: var(--teal); color: #06110f; }
+
+    main { overflow: hidden; }
+    .wrap { width: min(var(--max), calc(100% - 40px)); margin: auto; }
+    .hero { padding: 88px 0 74px; }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 78px; align-items: center; }
+    .kicker {
+      margin: 0 0 16px;
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { text-wrap: pretty; }
+    h1 { max-width: 760px; margin: 0; font-size: clamp(46px, 6vw, 78px); line-height: .98; letter-spacing: -.06em; }
+    h1 span { color: var(--teal); }
+    .hero-lede { max-width: 700px; margin: 27px 0 0; color: #b6c1bf; font-size: 18px; line-height: 1.7; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 29px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(15, 25, 23, .7);
+      color: #aeb9b7;
+      font-size: 11px;
+    }
+    .chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+
+    .verdict-card {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      border: 1px solid #37504c;
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(24, 43, 40, .9), rgba(12, 21, 20, .95));
+      box-shadow: 0 36px 90px rgba(0, 0, 0, .38);
+    }
+    .verdict-card::after {
+      position: absolute;
+      right: -70px;
+      top: -70px;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: rgba(98, 213, 203, .12);
+      content: "";
+      filter: blur(6px);
+    }
+    .verdict-overline { color: #8ba09c; font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    .verdict-card h2 { margin: 14px 0 10px; font-size: 30px; line-height: 1.1; letter-spacing: -.035em; }
+    .verdict-card > p { margin: 0; color: #aebbb8; font-size: 13px; }
+    .severity-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 24px; }
+    .severity-stat { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(8, 16, 15, .55); }
+    .severity-stat strong { display: block; font-size: 28px; font-variant-numeric: tabular-nums; }
+    .severity-stat span { color: #879692; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .severity-stat.high strong { color: var(--red); }
+    .severity-stat.medium strong { color: var(--amber); }
+    .severity-stat.low strong { color: var(--blue); }
+
+    section.section { padding: 82px 0; border-top: 1px solid rgba(61, 82, 77, .34); }
+    .section-head { display: grid; grid-template-columns: .72fr 1.28fr; gap: 48px; align-items: end; margin-bottom: 36px; }
+    .section-head h2 { margin: 0; font-size: clamp(34px, 4vw, 52px); line-height: 1.02; letter-spacing: -.05em; }
+    .section-head > p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
+
+    .strength-grid { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .strength { min-height: 210px; padding: 23px; border-right: 1px solid var(--line); background: linear-gradient(145deg, #111b1a, #0c1514); }
+    .strength:last-child { border-right: 0; }
+    .strength-number { color: var(--teal); font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .strength h3 { margin: 50px 0 10px; font-size: 17px; letter-spacing: -.02em; }
+    .strength p { margin: 0; color: #95a29f; font-size: 12px; }
+
+    .evidence-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    .evidence-card { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #0d1715; }
+    .evidence-card h3 { margin: 0 0 18px; font-size: 14px; }
+    .measurements { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .measurement { padding: 13px; border-radius: 8px; background: #101d1b; }
+    .measurement strong { display: block; color: #e7efed; font-size: 17px; }
+    .measurement span { color: #7f918d; font-size: 10px; }
+    .pass-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+    .pass-list li { display: grid; grid-template-columns: 20px 1fr; gap: 9px; color: #aab6b3; font-size: 12px; }
+    .pass-list i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(103, 215, 115, .13); color: var(--green); font-style: normal; font-size: 11px; }
+
+    .priority-stack { display: grid; gap: 14px; }
+    .finding {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(17, 28, 26, .95), rgba(10, 18, 17, .95));
+    }
+    .finding-anchor { padding: 22px 14px; border-right: 1px solid var(--line); text-align: center; }
+    .finding-id { display: block; color: #738681; font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+    .severity {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      height: 23px;
+      margin-top: 12px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 850;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    .severity.high { background: rgba(255, 116, 105, .12); color: var(--red); }
+    .severity.medium { background: rgba(242, 184, 75, .12); color: var(--amber); }
+    .severity.low { background: rgba(129, 182, 255, .12); color: var(--blue); }
+    .finding-body { padding: 22px 24px 24px; }
+    .finding-title-row { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+    .finding h3 { margin: 0; font-size: 20px; line-height: 1.2; letter-spacing: -.025em; }
+    .surface-tag { flex: 0 0 auto; color: #82938f; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .finding-summary { max-width: 850px; margin: 10px 0 0; color: #a9b6b3; font-size: 13px; }
+    .finding-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+    .finding-detail { padding: 14px; border: 1px solid #22312e; border-radius: 9px; background: rgba(8, 15, 14, .55); }
+    .finding-detail b { display: block; margin-bottom: 5px; color: #dbe4e2; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .finding-detail p { margin: 0; color: #899a96; font-size: 11px; }
+    code { color: #9de8df; font: 500 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .roadmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .roadmap-column { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #0d1715; }
+    .roadmap-column .phase { color: var(--teal); font-size: 10px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
+    .roadmap-column h3 { margin: 9px 0 18px; font-size: 20px; }
+    .roadmap-column ol { display: grid; gap: 14px; margin: 0; padding-left: 20px; color: #a9b5b2; font-size: 12px; }
+    .roadmap-column li::marker { color: #5f7772; font-weight: 800; }
+    .roadmap-column strong { display: block; color: #e5ecea; font-size: 12px; }
+
+    .acceptance { width: 100%; border-collapse: collapse; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #0d1715; font-size: 12px; }
+    .acceptance th, .acceptance td { padding: 15px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .acceptance tr:last-child td { border-bottom: 0; }
+    .acceptance th { color: #7e918c; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+    .acceptance td:first-child { width: 24%; color: #e6eeec; font-weight: 700; }
+    .acceptance td { color: #9ba8a5; }
+
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .method-card { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #0d1715; }
+    .method-card h3 { margin: 0 0 14px; font-size: 15px; }
+    .method-card ul { display: grid; gap: 9px; margin: 0; padding-left: 18px; color: #94a19e; font-size: 12px; }
+    .method-card li::marker { color: var(--teal); }
+    .source-list { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+    .source-list code { padding: 5px 8px; border: 1px solid #243330; border-radius: 6px; background: #091210; }
+
+    footer { padding: 36px 0 58px; border-top: 1px solid rgba(61, 82, 77, .34); color: #71807d; font-size: 11px; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 18px; width: min(var(--max), calc(100% - 40px)); margin: auto; }
+
+    @media (max-width: 900px) {
+      .hero-grid, .section-head { grid-template-columns: 1fr; gap: 28px; }
+      .strength-grid { grid-template-columns: 1fr 1fr; }
+      .strength:nth-child(2) { border-right: 0; }
+      .strength:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .roadmap { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 650px) {
+      .topbar-inner, .wrap, .footer-inner { width: min(100% - 28px, var(--max)); }
+      .audit-label, .topbar-actions .button:not(.primary) { display: none; }
+      .hero { padding: 58px 0 54px; }
+      h1 { font-size: 45px; }
+      .hero-lede { font-size: 15px; }
+      section.section { padding: 60px 0; }
+      .strength-grid, .evidence-strip, .finding-grid, .method-grid { grid-template-columns: 1fr; }
+      .strength { min-height: 180px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .strength:last-child { border-bottom: 0; }
+      .finding { grid-template-columns: 1fr; }
+      .finding-anchor { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--line); text-align: left; }
+      .severity { margin-top: 0; }
+      .finding-title-row { display: block; }
+      .surface-tag { display: block; margin-top: 8px; }
+      .severity-row { grid-template-columns: repeat(3, 1fr); }
+      .severity-stat { padding: 10px; }
+      .severity-stat strong { font-size: 22px; }
+      .acceptance { display: block; overflow-x: auto; }
+      .footer-inner { flex-direction: column; }
+    }
+    @media print {
+      :root { color-scheme: light; --ink: #10201e; --muted: #455653; --quiet: #62716f; --bg: white; --surface: white; --surface-2: #f6f9f8; --surface-3: #f0f5f3; --line: #ccd8d5; --line-strong: #9bada9; }
+      body { background: white; }
+      .topbar { position: static; background: white; backdrop-filter: none; }
+      .topbar-actions { display: none; }
+      .hero { padding-top: 48px; }
+      .verdict-card, .strength, .evidence-card, .finding, .finding-detail, .roadmap-column, .method-card, .acceptance { background: white; box-shadow: none; }
+      section.section { break-inside: avoid; }
+      .finding { break-inside: avoid; }
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#report">Skip to report</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="wordmark">
+        <span class="wordmark-mark" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M3.5 15.5c3.7-6.3 6.8-6.3 10.2 0s6.8 6.3 10.8 0"/></svg></span>
+        <span>NetReceipt</span>
+      </div>
+      <span class="audit-label">UX audit · July 21, 2026</span>
+      <div class="topbar-actions">
+        <button class="button" type="button" onclick="window.print()">Print / PDF</button>
+        <a class="button primary" href="#priorities">Top priorities</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="report">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="kicker">Desktop app + product website</p>
+          <h1>A polished utility with <span>three trust leaks.</span></h1>
+          <p class="hero-lede">NetReceipt is focused, visually coherent, and unusually clear for a network tool. The highest-value improvements are not aesthetic: they are about ensuring the interface never presents stale evidence as current, never overstates what one reference host proves, and tells one consistent privacy story.</p>
+          <div class="hero-meta" aria-label="Audit scope">
+            <span class="chip"><i></i>420 × 640 desktop window</span>
+            <span class="chip"><i></i>1280 × 720 web</span>
+            <span class="chip"><i></i>390 × 844 mobile</span>
+            <span class="chip"><i></i>4 app flows exercised</span>
+          </div>
+        </div>
+        <aside class="verdict-card" aria-label="Executive verdict">
+          <span class="verdict-overline">Executive verdict</span>
+          <h2>Strong foundation.<br>Fix trust before polish.</h2>
+          <p>The dashboard communicates current readings well, dialogs fit the production window, and the acquisition page makes the download path obvious. Three high-priority inconsistencies can undermine the product’s core promise of reliable evidence.</p>
+          <div class="severity-row" aria-label="Findings by severity">
+            <div class="severity-stat high"><strong>3</strong><span>High</span></div>
+            <div class="severity-stat medium"><strong>4</strong><span>Medium</span></div>
+            <div class="severity-stat low"><strong>2</strong><span>Low</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="working">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="kicker">What already works</p><h2>Keep the restraint.</h2></div>
+          <p>The interface succeeds because it does not feel like a generic analytics dashboard. It leads with a single answer, keeps the data hierarchy tight, and makes advanced detail available without crowding the default view.</p>
+        </div>
+        <div class="strength-grid">
+          <article class="strength"><span class="strength-number">01</span><h3>Immediate hierarchy</h3><p>Status, three checks, recent trend, then actions: the order matches the user’s likely questions and works in one compact glance.</p></article>
+          <article class="strength"><span class="strength-number">02</span><h3>Redundant status cues</h3><p>Healthy, slow, failed, and partial states use icon, color, headline, and text—not color alone. Chart summaries also have accessible labels.</p></article>
+          <article class="strength"><span class="strength-number">03</span><h3>Well-contained flows</h3><p>Settings, history, export, and privacy fit inside 420 × 640. Closing each tested dialog returned focus to its trigger.</p></article>
+          <article class="strength"><span class="strength-number">04</span><h3>Clear local-data promise</h3><p>“Your history stays on this device” is prominent, concrete, and paired with a useful list of data that is not uploaded.</p></article>
+        </div>
+
+        <div class="evidence-strip">
+          <article class="evidence-card">
+            <h3>Production viewport checks</h3>
+            <div class="measurements">
+              <div class="measurement"><strong>380 × 505</strong><span>Settings dialog</span></div>
+              <div class="measurement"><strong>372 × 568</strong><span>History dialog</span></div>
+              <div class="measurement"><strong>380 × 477</strong><span>Custom export dialog</span></div>
+              <div class="measurement"><strong>370 × 420</strong><span>About dialog</span></div>
+            </div>
+          </article>
+          <article class="evidence-card">
+            <h3>Verified behavior</h3>
+            <ul class="pass-list">
+              <li><i>✓</i><span>No horizontal or vertical overflow in the fixed app window.</span></li>
+              <li><i>✓</i><span>No horizontal overflow at a 390 px mobile website viewport.</span></li>
+              <li><i>✓</i><span>Settings, range switching, custom export dates, and About all remained usable.</span></li>
+              <li><i>✓</i><span>Sampled app secondary/status text measured 8.46:1–11.09:1 contrast.</span></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="priorities">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="kicker">Prioritized findings</p><h2>Fix confidence gaps first.</h2></div>
+          <p>Severity reflects likely user harm and reach, not implementation difficulty. “High” findings can change whether users trust the evidence or the privacy claim; “Medium” findings create interpretation or completion friction; “Low” findings are accessibility and navigation polish.</p>
+        </div>
+
+        <div class="priority-stack">
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-01</span><span class="severity high">High</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>Paused monitoring can still look healthy and freshly checked</h3><span class="surface-tag">Desktop app</span></div>
+              <p class="finding-summary">Pause changes the small header label and footer action, but the dominant green hero and its health claim still come from the last sample. “Checked just now” is calculated only during a render, so it can remain frozen after monitoring stops.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>src/App.tsx:108–130, 153–155, 290–292</code>. The hero ignores <code>monitor.running</code>; no timer refreshes relative age.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Give “paused” and “stale” higher display precedence than the last sample. Use a neutral hero: “Monitoring paused · Last checked 9:42 PM,” with a clear Resume action.</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-02</span><span class="severity high">High</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>The website loads Google Analytics before offering consent</h3><span class="surface-tag">Website + privacy</span></div>
+              <p class="finding-summary">The public page says optional telemetry waits for consent, while its head immediately loads and configures the Google tag. The desktop app does wait for an explicit choice, so the two surfaces tell incompatible privacy stories.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>docs/index.html:20–27, 37</code> loads GA unconditionally. In contrast, <code>src/analytics.ts:26–51</code> gates the app script behind consent.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Default analytics storage to denied and do not load gtag until the visitor opts in. Name Google Analytics in the disclosure and offer equally clear “Allow” and “No thanks” actions.</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-03</span><span class="severity high">High</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>One reference host is presented as the health of “your internet”</h3><span class="surface-tag">Product model + copy</span></div>
+              <p class="finding-summary">TCP, DNS, and HTTPS are distinct layers, but all checks target the same configurable host. A host-specific problem can be described as a whole-internet interruption, and the website calls the checks “independent.”</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>src-tauri/src/monitor.rs:102–117</code> classifies the combined result; the dashboard says “Your internet is healthy/interrupted,” and <code>docs/index.html:37</code> says “Three independent checks.”</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Near term, say “Reference checks passed” and “All checks to one.one.one.one succeeded.” Call them “three connection-layer checks.” Longer term, use independent endpoints before making whole-internet claims.</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-04</span><span class="severity medium">Medium</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>“Issues” and “Incidents” use different counting models</h3><span class="surface-tag">Desktop app</span></div>
+              <p class="finding-summary">The main chart’s “Issues” value counts every non-healthy sample. History separately reports confirmed incidents after applying failure tolerance. Users can reasonably assume these are two views of the same concept.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>src/components.tsx:35–55, 79–82</code> counts samples. <code>src/history-dialog.tsx:58–73</code> labels a different aggregate as confirmed incidents.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Either calculate confirmed 30-minute incidents for the main card, or rename it “Affected checks” and expose the sample definition in the accessible chart summary.</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-05</span><span class="severity medium">Medium</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>Settings expose implementation terms without decision support</h3><span class="surface-tag">Desktop app</span></div>
+              <p class="finding-summary">Interval, timeout, slow threshold, retention, and consecutive-issue tolerance are valid controls, but the screen mostly states units. Users must understand monitoring mechanics to predict the effect of a change.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p>The 420 × 640 test fit all fields, but inputs were 30 px tall and explanation was limited to “After sustained changes.” Validation appears after Save.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Add outcome-oriented helper text and safe presets: “Balanced,” “Fast detection,” and “Low activity.” Show the estimated alert delay, e.g. “3 issues × 30 sec ≈ 90 sec.” Add “Restore defaults.”</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-06</span><span class="severity medium">Medium</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>Important status changes are not announced programmatically</h3><span class="surface-tag">Accessibility</span></div>
+              <p class="finding-summary">Error/success notices correctly use live semantics, but the “Live / Paused” state and connection headline are plain content. A screen-reader user may not hear a monitoring or connection state transition.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>src/App.tsx:108–130</code> has no <code>role="status"</code> or live region. Visual state is clear and focus outlines are implemented.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Announce only meaningful transitions with a polite live region, not every sample. Include monitoring state and last-check age in the same concise status sentence.</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-07</span><span class="severity medium">Medium</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>The download decision lacks release confidence cues</h3><span class="surface-tag">Website</span></div>
+              <p class="finding-summary">Platform choices are well separated, but “latest build” links show no version, publish date, file size, signing/notarization status, or checksum. Those details matter for a background utility with local network access.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>docs/index.html:38</code> provides direct asset links and OS requirements only. Release notes are one additional link below all cards.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Show “v0.1.1 · published Jul 2026,” package size, and signing status next to the chooser. Keep checksums and release notes one click away.</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-08</span><span class="severity low">Low</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>Mobile removes all navigation beyond the wordmark</h3><span class="surface-tag">Website</span></div>
+              <p class="finding-summary">At 560 px and below, the entire nav link group is hidden. The primary hero CTA still reaches downloads, but return visitors lose direct access to Downloads, Features, GitHub, and Ko-fi.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>docs/styles.css</code> uses <code>nav&gt;div{display:none}</code> at the mobile breakpoint. At 390 px the page had no horizontal overflow.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Keep a compact “Downloads” link visible beside the wordmark; move lower-priority links to the footer. Add a skip link for keyboard users.</p></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="finding">
+            <div class="finding-anchor"><span class="finding-id">NR-UX-09</span><span class="severity low">Low</span></div>
+            <div class="finding-body">
+              <div class="finding-title-row"><h3>Two small website text styles miss normal-text contrast</h3><span class="surface-tag">Accessibility</span></div>
+              <p class="finding-summary">Most app and website text has generous contrast. The 9 px proof strip and download-card secondary link text are the exceptions in sampled color pairs.</p>
+              <div class="finding-grid">
+                <div class="finding-detail"><b>Evidence</b><p><code>#647173</code> on <code>#0d1213</code> measured 3.73:1; <code>#748182</code> on <code>#121819</code> measured 4.45:1. Both are below 4.5:1 for normal text.</p></div>
+                <div class="finding-detail"><b>Recommendation</b><p>Raise those colors to at least <code>#7f8b8c</code>/<code>#81908d</code> and increase the proof strip from 9 px to 10–11 px. Recheck hover and visited states.</p></div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="roadmap">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="kicker">Recommended roadmap</p><h2>Trust, then meaning, then polish.</h2></div>
+          <p>This sequence keeps the work outcome-focused. The first phase protects the core promise; the second aligns terminology and decision support; the third closes accessibility and acquisition gaps.</p>
+        </div>
+        <div class="roadmap">
+          <article class="roadmap-column">
+            <span class="phase">Now · 1–2 days</span>
+            <h3>Protect the promise</h3>
+            <ol>
+              <li><strong>Add paused and stale states.</strong>Neutralize the hero and keep last-check age live.</li>
+              <li><strong>Gate website analytics.</strong>Make the website match the desktop app’s explicit consent model.</li>
+              <li><strong>Narrow the health claim.</strong>Describe reference-host checks accurately on both surfaces.</li>
+            </ol>
+          </article>
+          <article class="roadmap-column">
+            <span class="phase">Next · 3–5 days</span>
+            <h3>Clarify the evidence</h3>
+            <ol>
+              <li><strong>Align Issues and Incidents.</strong>Use one definition or name the distinct counts plainly.</li>
+              <li><strong>Guide configuration.</strong>Add presets, estimated alert delay, and restore defaults.</li>
+              <li><strong>Improve download confidence.</strong>Add version, date, size, signing, and release-note context.</li>
+            </ol>
+          </article>
+          <article class="roadmap-column">
+            <span class="phase">Then · 1–2 days</span>
+            <h3>Close accessibility gaps</h3>
+            <ol>
+              <li><strong>Announce meaningful state changes.</strong>Use a polite live region with restrained updates.</li>
+              <li><strong>Keep a mobile Downloads link.</strong>Preserve the highest-value route in the header.</li>
+              <li><strong>Repair small-text contrast.</strong>Raise two muted colors and add a website skip link.</li>
+            </ol>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="acceptance">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="kicker">Acceptance criteria</p><h2>Make the fixes testable.</h2></div>
+          <p>These checks turn the top recommendations into concrete product behavior and prevent regressions.</p>
+        </div>
+        <table class="acceptance">
+          <thead><tr><th>Area</th><th>Definition of done</th><th>Suggested verification</th></tr></thead>
+          <tbody>
+            <tr><td>Paused / stale state</td><td>Green “healthy” styling is never shown as current while paused or when the sample age exceeds the freshness threshold. Last-check time advances without a new sample.</td><td>Component tests with fake timers plus one packaged-app pause test.</td></tr>
+            <tr><td>Privacy consistency</td><td>No request to Google tag endpoints occurs before affirmative website consent. The provider and event categories are named in both app and web copy.</td><td>Clean-profile network inspection and consent-state tests.</td></tr>
+            <tr><td>Claim accuracy</td><td>UI and website describe host-scoped, layer-specific checks unless multiple independent endpoints are actually used.</td><td>Copy review against the Rust probe implementation.</td></tr>
+            <tr><td>Metric semantics</td><td>“Issues” either uses incident logic or is renamed so a user cannot confuse samples with confirmed incidents.</td><td>Unit test with three failed samples inside one confirmed incident.</td></tr>
+            <tr><td>Accessible state</td><td>A screen reader announces transitions among checking, live-healthy, degraded, paused, and stale once per meaningful change.</td><td>VoiceOver and NVDA smoke tests; no announcement on identical samples.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="method">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="kicker">Method and scope</p><h2>Evidence, not a screenshot critique.</h2></div>
+          <p>The audit combined rendered-flow testing with source review so visual findings could be checked against state, data, and telemetry behavior.</p>
+        </div>
+        <div class="method-grid">
+          <article class="method-card">
+            <h3>What was reviewed</h3>
+            <ul>
+              <li>Dashboard at its configured 420 × 640 production window.</li>
+              <li>Settings, history, export, and About/Privacy flows, including dialog bounds and focus return.</li>
+              <li>Product website at 1280 × 720 and 390 × 844.</li>
+              <li>Status logic, chart semantics, monitoring pause behavior, consent code, and native tray/window behavior.</li>
+              <li>Spot contrast checks for primary muted/status colors.</li>
+            </ul>
+            <div class="source-list" aria-label="Reviewed sources">
+              <code>src/App.tsx</code><code>src/components.tsx</code><code>src/useMonitor.ts</code><code>src/analytics.ts</code><code>src-tauri/src/monitor.rs</code><code>docs/index.html</code><code>docs/styles.css</code>
+            </div>
+          </article>
+          <article class="method-card">
+            <h3>Limits of this audit</h3>
+            <ul>
+              <li>Native builds were not packaged or installed on macOS, Windows, and Linux.</li>
+              <li>OS notification delivery, tray menus, native save dialogs, code signing, and installer reputation were reviewed from source/configuration, not end-to-end.</li>
+              <li>No full VoiceOver/NVDA session or automated WCAG conformance scan was run.</li>
+              <li>Download URLs, release artifacts, privacy law compliance, and production analytics requests were not externally verified.</li>
+              <li>Findings are a heuristic product audit, not legal advice or a formal accessibility certification.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span>NetReceipt UX audit · Prepared July 21, 2026</span>
+      <span>Scope: desktop utility + public product page</span>
+    </div>
+  </footer>
+</body>
+</html>

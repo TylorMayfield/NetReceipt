@@ -98,7 +98,9 @@ input:focus-visible,
 .status-check svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .status-hero.slow .status-check { background: #dda521; }
 .status-hero.interrupted .status-check { background: #d7554e; }
-.status-hero.unknown .status-check { background: #777d80; }
+.status-hero.unknown .status-check,
+.status-hero.paused .status-check,
+.status-hero.stale .status-check { background: #777d80; }
 .status-message { min-width: 0; padding-bottom: 2px; }
 .status-message h1 { margin: 0; color: #f5f6f6; font-size: 20px; line-height: 1.18; font-weight: 680; letter-spacing: -.025em; }
 .status-message p { margin: 6px 0 0; color: #bec2c4; font-size: 12px; line-height: 1.35; }

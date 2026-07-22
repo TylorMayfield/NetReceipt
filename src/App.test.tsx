@@ -1,8 +1,8 @@
 import { Theme } from "@radix-ui/themes";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { SettingsDialog, TelemetryDialog } from "./App";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SettingsDialog, StatusHero, TelemetryDialog } from "./App";
 import { AboutDialog } from "./about-dialog";
 import { defaultConfig, type HistoryOverview, type Sample } from "./domain";
 import { ExportDialog } from "./export-dialog";
@@ -20,6 +20,39 @@ describe("connection presentation", () => {
     };
     expect(connectionPresentation(null, presentations).headline).toBe("Checking your internet");
     expect(connectionPresentation(sample({ status: "unknown", dnsOk: false }), presentations).headline).toContain("Partially available");
+  });
+});
+
+describe("StatusHero", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-21T21:42:00"));
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it("gives paused state precedence over the last healthy sample and refreshes its age", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const { container } = render(<StatusHero current={sample({ timestamp: now })} running={false} config={defaultConfig} />);
+
+    expect(screen.getByRole("heading", { name: "Monitoring paused" })).not.toBeNull();
+    expect(container.querySelector(".status-hero.paused")).not.toBeNull();
+    expect(screen.getByText(/^Last checked/).textContent).not.toContain("min ago");
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(screen.getByText(/1 min ago/)).not.toBeNull();
+  });
+
+  it("replaces a healthy claim when no new sample arrives within the freshness window", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const { container } = render(<StatusHero current={sample({ timestamp: now - 30 })} running config={defaultConfig} />);
+
+    expect(screen.getByRole("heading", { name: "Your internet is healthy" })).not.toBeNull();
+    act(() => vi.advanceTimersByTime(30_000));
+
+    expect(screen.getByRole("heading", { name: "Latest check is stale" })).not.toBeNull();
+    expect(container.querySelector(".status-hero.stale")).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Your internet is healthy" })).toBeNull();
   });
 });
 
