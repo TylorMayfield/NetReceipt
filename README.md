@@ -65,4 +65,4 @@ NetReceipt stores monitoring configuration and connection history locally. Optio
 
 ## License
 
-Copyright © 2026 BarkOnTrack LLC. Add the project license file before distributing builds; the release page and product site intentionally do not claim a license until one is present.
+Copyright © 2026 BarkOnTrack LLC. NetReceipt is available under the [MIT License](LICENSE).
